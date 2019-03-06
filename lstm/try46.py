@@ -98,8 +98,8 @@ def run_network(model=None, epochs=0):
         model.save('test46a.h5')
     return model, predicted
 
-[mo, pred] = run_network(model='test43b.h5', epochs =2)
-#[mo, pred] = run_network(model=None, epochs = 2)
+# [mo, pred] = run_network(model='test43b.h5', epochs =2)
+[mo, pred] = run_network(model=None, epochs = 2)
 
 #plt.figure()
 #plt.plot(a12[300:165300:3,4])

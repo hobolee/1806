@@ -12,29 +12,29 @@ import os
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 #time, wave.C1, surge, sway, heave, roll, pitch, yaw
-for i in range(1, 41):
-    if i < 41:
+for i in range(1, 11):
+    if i < 11:
         if i < 10:
-            locals()['a' + str(i)] = np.loadtxt(r'C:\Users\29860\Documents\1806\data_aligned\C30' + str(i) + '.txt',
+            locals()['a' + str(i)] = np.loadtxt(r'D:\1806\data_aligned\C30' + str(i) + '.txt',
                                                 skiprows=0)
         elif i < 17:
-            locals()['a' + str(i)] = np.loadtxt(r'C:\Users\29860\Documents\1806\data_aligned\C3' + str(i) + '.txt',
+            locals()['a' + str(i)] = np.loadtxt(r'D:\1806\data_aligned\C3' + str(i) + '.txt',
                                                 skiprows=0)
         elif i < 26:
             locals()['a' + str(i)] = np.loadtxt(
-                r'C:\Users\29860\Documents\1806\data_aligned\C50' + str(i - 16) + '.txt', skiprows=0)
+                r'D:\1806\data_aligned\C50' + str(i - 16) + '.txt', skiprows=0)
         else:
-            locals()['a' + str(i)] = np.loadtxt(r'C:\Users\29860\Documents\1806\data_aligned\C5' + str(i - 16) + '.txt',
+            locals()['a' + str(i)] = np.loadtxt(r'D:\1806\data_aligned\C5' + str(i - 16) + '.txt',
                                                 skiprows=0)
-gap = 8
-timeSteps = 75
+gap = 2
+timeSteps = 75*4
 whichMotion = 3
-trainNum = 39
+trainNum = 1
 X_train = np.empty((trainNum*170000//gap, timeSteps), dtype="float32")
 y_train = np.empty((trainNum*170000//gap, 1), dtype="float32")
-X_test = np.empty(((40-trainNum)*170000//gap, timeSteps), dtype="float32")
-y_test = np.empty(((40-trainNum)*170000//gap, 1), dtype="float32")
-for i in range(1, 41):
+X_test = np.empty(((10-trainNum)*170000//gap, timeSteps), dtype="float32")
+y_test = np.empty(((10-trainNum)*170000//gap, 1), dtype="float32")
+for i in range(1, 11):
     for j in range(170000//gap):
         if i > trainNum:
             X_test[170000//gap * (i - trainNum - 1) + j, :] = locals()['a' + str(i)][0 + gap * j:gap*timeSteps + gap * j:gap, 1]
@@ -42,8 +42,8 @@ for i in range(1, 41):
         else:
             X_train[170000//gap * (i - 1) + j, :] = locals()['a' + str(i)][0 + gap * j:gap*timeSteps + gap * j:gap, 1]
             y_train[170000//gap * (i - 1) + j, :] = locals()['a' + str(i)][gap*timeSteps + gap * j, whichMotion]
-y_train = y_train - 10
-y_test = y_test - 10
+# y_train = y_train
+# y_test = y_test
 print(X_train.shape)
 print(y_train.shape)
 print(X_test.shape)
@@ -64,24 +64,24 @@ import keras
 
 def build_model():
     model = Sequential()
-    layers = [32, 1]
+    layers = [16, 8, 1]
 
     model.add(LSTM(
         layers[0],
         input_shape = (timeSteps, 1),
-        return_sequences=False))
+        return_sequences=True))
     # model.add(Dropout(0.5))
 
-    # model.add(LSTM(
-    #     layers[1],
-    #     return_sequences=False))
+    model.add(LSTM(
+        layers[1],
+        return_sequences=False))
 
     model.add(Dense(
-        layers[1], activation = 'linear'))
+        layers[2], activation = 'linear'))
     # model.add(Activation("linear"))
     start = time.time()
     model.compile(loss="mse", optimizer="adam")
-    keras.optimizers.Adam(lr=0.0006)
+    keras.optimizers.Adam(lr=0.001)
     print("Compilation Time : ", time.time() - start)
     return model
 
@@ -97,7 +97,7 @@ def run_network(model=None, epochs=0):
             model.fit(
                 X_train, y_train,
                 # batch_size=8192, epochs=epochs, validation_split=0, shuffle=False)
-                batch_size=8192, epochs=epochs, validation_split=0.1)
+                batch_size=4096, epochs=epochs, validation_split=0.1)
         predicted = model.predict(X_test)
         predicted = np.reshape(predicted, (predicted.size,))
         predicted_train = model.predict(X_train)
@@ -107,18 +107,18 @@ def run_network(model=None, epochs=0):
     try:
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(np.concatenate((y_train[:, 0], y_test[:, 0]))+10, label = "test")
-        plt.plot(np.concatenate((predicted_train, predicted[:]))+10, label = "pred")
+        ax.plot(np.concatenate((y_train[:, 0], y_test[:, 0])), label = "test")
+        plt.plot(np.concatenate((predicted_train, predicted[:])), label = "pred")
         plt.show()
     except Exception as e:
         print(str(e))
     if epochs > 0:
-        model.save('test49.h5')
+        model.save('test49_layer16_8.h5')
     return model, predicted
 
 
-# [mo, pred] = run_network(model='test49.h5', epochs=20)
-[mo, pred] = run_network(model=None, epochs = 20)
+# [mo, pred] = run_network(model='test49_layer16_8.h5', epochs=10)
+[mo, pred] = run_network(model=None, epochs = 10)
 
 # plt.figure()
 # plt.plot(a12[300:165300:3,4])
